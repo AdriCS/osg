@@ -89,6 +89,7 @@ class OSGGA_EXPORT OrbitManipulator : public StandardManipulator
         virtual void rotateWithFixedVertical( const float dx, const float dy, const osg::Vec3f& up );
         virtual void panModel( const float dx, const float dy, const float dz = 0.f );
         virtual void zoomModel( const float dy, bool pushForwardIfNeeded = true );
+        virtual void myZoomModel( const float dy, osgGA::GUIActionAdapter &aa, bool pushForwardIfNeeded = true );
         void trackball( osg::Vec3d& axis, float& angle, float p1x, float p1y, float p2x, float p2y );
         float tb_project_to_sphere( float r, float x, float y );
         virtual bool startAnimationByMousePointerIntersection( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );

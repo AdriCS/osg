@@ -30,6 +30,7 @@ int StandardManipulator::allocateRelativeFlag()
     return numRelativeFlagsAllocated++;
 }
 
+bool is_pan = false;
 
 /// Constructor.
 StandardManipulator::StandardManipulator( int flags )
@@ -245,13 +246,31 @@ bool StandardManipulator::handle( const GUIEventAdapter& ea, GUIActionAdapter& u
             return handleMouseMove( ea, us );
 
         case GUIEventAdapter::DRAG:
+        {
+            const unsigned int bmask = ea.getButtonMask();
+
+            if( bmask == GUIEventAdapter::MIDDLE_MOUSE_BUTTON ||
+                bmask == ( GUIEventAdapter::LEFT_MOUSE_BUTTON
+                          | GUIEventAdapter::RIGHT_MOUSE_BUTTON ) )
+            {
+                is_pan = true;
+            }
             return handleMouseDrag( ea, us );
+        }
 
         case GUIEventAdapter::PUSH:
             return handleMousePush( ea, us );
 
         case GUIEventAdapter::RELEASE:
-            return handleMouseRelease( ea, us );
+//            return handleMouseRelease( ea, us );
+        {
+            const bool released = handleMouseRelease( ea, us );
+            if( is_pan ) {
+                is_pan = false;
+                setCenterInScreenMiddle( &us );
+            }
+            return released;
+        }
 
         case GUIEventAdapter::KEYDOWN:
             return handleKeyDown( ea, us );
@@ -750,6 +769,7 @@ void StandardManipulator::fixVerticalAxis( const osg::Vec3d& forward, const osg:
     is used to set a new center for the manipulator. For Orbit-style manipulators,
     the orbiting center is set. For FirstPerson-style manipulators, view is pointed
     towards the center.*/
+#if 0
 bool StandardManipulator::setCenterByMousePointerIntersection( const GUIEventAdapter& ea, GUIActionAdapter& us )
 {
     osg::View* view = us.asView();
@@ -821,7 +841,155 @@ bool StandardManipulator::setCenterByMousePointerIntersection( const GUIEventAda
 
     return true;
 }
+#endif
 
+bool StandardManipulator::getScreenCenter( osg::Vec3d& c,
+                                           osgGA::GUIActionAdapter *aa,
+                                           const double zf )
+{   // :TODO: mio
+
+//    std::cout << std::fixed;
+    osgViewer::View* view = dynamic_cast<osgViewer::View*>( aa );
+    if( !view ) {
+        throw "NO VIEW";
+        return false;
+    }
+    Camera *camera = view->getCamera();
+    if( !camera ) {
+        return false;
+    }
+
+    osg::observer_ptr<osg::Viewport> vport = camera->getViewport();
+    const osg::Matrixd vmat = camera->getViewMatrix();
+    const osg::Matrix pmat = camera->getProjectionMatrix();
+    const osg::Matrix wmat = vport->computeWindowMatrix();
+    osg::Matrix inverseMat;
+    inverseMat.invert( vmat * pmat * wmat );
+    const osg::Vec3d pointPort( vport->x() + vport->width() / 2,
+                                vport->y() + vport->height() / 2, 1.0 )
+    ;
+
+    PolytopeIntersector::CoordinateFrame cf = Intersector::WINDOW;
+    float x = pointPort.x();
+    float y = pointPort.y();
+
+    static float zoom( 3.f );
+    if( zf > 0.f ) {
+        zoom += 1.0f;
+    } else if( zf < 0.f ) {
+        zoom -= 1.0f;
+    }
+    /*static */ float buff( 3.f );
+//    if( zf > 0. && buff < 7.f ) {
+//        std::cout << "\tINCREMENTING BUFF\n";
+//        buff += 1.0f;
+//    } else if( zf < 0. && buff > 3.f ) {
+//        std::cout << "\tDECREMENTING BUFF\n";
+//        buff -= -1.0f;
+//    }
+
+//    buff = 3.f;
+    ref_ptr<PolytopeIntersector> pick = new PolytopeIntersector( cf, x - buff,
+                                                                 y - buff,
+                                                                 x + buff,
+                                                                 y + buff )
+    ;
+    pick->setDimensionMask( PolytopeIntersector::DimZero );
+    pick->setIntersectionLimit( Intersector::LIMIT_NEAREST );
+    IntersectionVisitor vis( pick.get() );
+    camera->accept( vis );
+
+    if( pick->containsIntersections() ) {
+        PolytopeIntersector::Intersections& ins = pick->getIntersections();
+
+        const PolytopeIntersector::Intersection& I = *( ins.begin() );
+        const osg::Vec3d found = I.intersectionPoints[ 0 ];
+//        const osg::Vec3d found_local = I.localIntersectionPoint;
+
+
+        c = found;                               /*std::cout << "\t** C = found\n";*/
+//        c = found_local;                       std::cout << "\t** C = found_local\n";
+
+        return true;
+    } else {
+        {
+//            if( zoom < )
+            buff *= 3.;
+
+            pick = new osgUtil::PolytopeIntersector( cf, x - buff,
+                                                     y - buff,
+                                                     x + buff,
+                                                     y + buff )
+            ;
+            pick->setDimensionMask( PolytopeIntersector::DimZero );
+            pick->setIntersectionLimit( Intersector::LIMIT_NEAREST );
+            vis.setIntersector( pick.get() );
+            camera->accept( vis );
+            if( pick->containsIntersections() ) {
+                PolytopeIntersector::Intersections& ins = pick->getIntersections();
+                const PolytopeIntersector::Intersection& I = *( ins.begin() );
+                const osg::Vec3d found = I.intersectionPoints[ 0 ];
+                c = found;
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+bool StandardManipulator::setCenterInScreenMiddle( osgGA::GUIActionAdapter* aa )
+{ /* :TODO: mio */
+
+    osg::Vec3d eye, oldCenter, up;
+    getTransformation( eye, oldCenter, up );
+
+    osg::Vec3d newCenter( oldCenter );
+
+    if( !getScreenCenter( newCenter, aa ) || ( oldCenter == newCenter ) ) {
+        return false;
+    }
+
+    // set the new center
+    setTransformation( eye, newCenter, up );
+
+    aa->requestRedraw();
+    aa->requestContinuousUpdate(false);
+
+    return true;
+
+}
+
+bool StandardManipulator::setCenterByMousePointerIntersection( const GUIEventAdapter& ea, GUIActionAdapter& us, const double zf )
+{
+    osg::Vec3d eye, oldCenter, up;
+    getTransformation( eye, oldCenter, up );
+
+    osg::Vec3d newCenter( oldCenter );
+
+    if( !getScreenCenter( newCenter, &us, zf ) ) {
+        return false;
+    }
+
+    // set the new center
+    setTransformation( eye, newCenter, up );
+
+
+    // warp pointer
+    // note: this works for me on standard camera on GraphicsWindowEmbedded and Qt,
+    //       while it was necessary to implement requestWarpPointer like follows:
+    //
+    // void QOSGWidget::requestWarpPointer( float x, float y )
+    // {
+    //    osgViewer::Viewer::requestWarpPointer( x, y );
+    //    QCursor::setPos( this->mapToGlobal( QPoint( int( x+.5f ), int( y+.5f ) ) ) );
+    // }
+    //
+    // Additions of .5f are just for the purpose of rounding.
+//    centerMousePointer( ea, us );
+
+    return true;
+}
 
 /** Makes mouse pointer intersection test with the geometry bellow the pointer
     and starts animation to center camera to look at the closest hit bellow the mouse pointer.
