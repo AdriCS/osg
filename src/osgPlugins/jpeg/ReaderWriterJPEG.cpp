@@ -77,10 +77,12 @@ static int jpegerror = ERR_NO_ERROR;
 
 /* Some versions of jmorecfg.h define boolean, some don't...
    Those that do also define HAVE_BOOLEAN, so we can guard using that. */
+#if 0   
 #ifndef HAVE_BOOLEAN
   typedef int boolean;
   #define FALSE 0
   #define TRUE 1
+#endif
 #endif
 
 /* CODE FOR READING/WRITING JPEG FROM STREAMS

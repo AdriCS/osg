@@ -231,7 +231,7 @@ bool OrbitManipulator::handleMouseWheel( const GUIEventAdapter& ea, GUIActionAda
             if( getAnimationTime() <= 0. )
             {
                 // center by mouse intersection (no animation)
-                setCenterByMousePointerIntersection( ea, us );
+                setCenterByMousePointerIntersection( ea, us, _wheelZoomFactor );
             }
             else
             {
@@ -262,7 +262,7 @@ bool OrbitManipulator::handleMouseWheel( const GUIEventAdapter& ea, GUIActionAda
             // perform zoom
             zoomModel( -_wheelZoomFactor, true );
             us.requestRedraw();
-            us.requestContinuousUpdate( isAnimating() || _thrown );
+            us.requestContinuousUpdate( /*isAnimating() || _thrown*/ false );
             return true;
         }
 
@@ -463,6 +463,39 @@ void OrbitManipulator::zoomModel( const float dy, bool pushForwardIfNeeded )
     }
 }
 
+void OrbitManipulator::myZoomModel( const float dy, osgGA::GUIActionAdapter &us, bool pushForwardIfNeeded )
+{
+    // scale
+    float scale = 1.0f + dy;
+
+    // minimum distance
+    float minDist = _minimumDistance;
+    if( getRelativeFlag( _minimumDistanceFlagIndex ) )
+        minDist *= _modelSize;
+
+    _distance *= scale;
+
+    if( _distance > minDist ) setCenterInScreenMiddle( &us );
+
+//    if( _distance*scale > minDist )
+//    {
+//        // regular zoom
+//        _distance *= scale;
+//    }
+//    else
+//    {
+//        if( pushForwardIfNeeded )
+//        {
+//            setCenterInScreenMiddle( &us );
+//        }
+//        else
+//        {
+//            std::cout << "[[OrbitManipulator::zoomModel]] Set to MIN" << std::endl;
+//            // set distance on its minimum value
+//            _distance = minDist;
+//        }
+//    }
+}
 
 /**
  * Simulate a track-ball.  Project the points onto the virtual
@@ -501,7 +534,7 @@ void OrbitManipulator::trackball( osg::Vec3d& axis, float& angle, float p1x, flo
     /*
         *  Figure out how much to rotate around that axis.
         */
-    float t = (p2 - p1).length() / (2.0 * _trackballSize);
+    float t = (p2 - p1).length() / ( /*2.0*/ 1.3 * _trackballSize);
 
     /*
         * Avoid problems with out-of-control values...

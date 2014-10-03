@@ -21,7 +21,11 @@
 
 #include <osgGA/CameraManipulator>
 
-
+/* :TODO: mio */
+namespace osgViewer {
+    class View;
+}
+/**/
 namespace osgGA {
 
 
@@ -83,7 +87,8 @@ class OSGGA_EXPORT StandardManipulator : public CameraManipulator
         virtual void init( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
         virtual bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
         virtual void getUsage( osg::ApplicationUsage& usage ) const;
-
+        bool setCenterInScreenMiddle( osgGA::GUIActionAdapter *aa );// :TODO: mio
+        bool getScreenCenter( osg::Vec3d& c, osgGA::GUIActionAdapter *aa, const double zf = 0. ); // :TODO: mio
     protected:
 
         virtual bool handleFrame( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
@@ -117,7 +122,7 @@ class OSGGA_EXPORT StandardManipulator : public CameraManipulator
         void fixVerticalAxis( osg::Vec3d& eye, osg::Quat& rotation, bool disallowFlipOver );
         static void fixVerticalAxis( const osg::Vec3d& forward, const osg::Vec3d& up, osg::Vec3d& newUp,
                                      const osg::Vec3d& localUp, bool disallowFlipOver );
-        virtual bool setCenterByMousePointerIntersection( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
+        virtual bool setCenterByMousePointerIntersection( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us, const double zf = 0. );
         virtual bool startAnimationByMousePointerIntersection( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
 
         // mouse state
