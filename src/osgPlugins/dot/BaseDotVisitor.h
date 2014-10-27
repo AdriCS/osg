@@ -28,6 +28,8 @@
 
 #include <osgDB/Options>
 
+#include <iostream>
+
 namespace osgDot {
 
   class BaseDotVisitor : public osg::NodeVisitor {
@@ -44,11 +46,9 @@ namespace osgDot {
     bool run( osg::Node& root, std::ostream* ostream );
 
     virtual void apply(osg::Node& node);
-
     virtual void apply(osg::Geode& node);
 
     virtual void apply(osg::Group& node);
-
 
   protected:
 
