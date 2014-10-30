@@ -87,8 +87,13 @@ class OSGGA_EXPORT StandardManipulator : public CameraManipulator
         virtual void init( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
         virtual bool handle( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
         virtual void getUsage( osg::ApplicationUsage& usage ) const;
+
+	/* :TODO: mio */
         bool setCenterInScreenMiddle( osgGA::GUIActionAdapter *aa );// :TODO: mio
         bool getScreenCenter( osg::Vec3d& c, osgGA::GUIActionAdapter *aa, const double zf = 0. ); // :TODO: mio
+	inline void setUserInteractionFlag( const int f );
+	inline int getUserInteractionFlag() const;
+	/**/
     protected:
 
         virtual bool handleFrame( const osgGA::GUIEventAdapter& ea, osgGA::GUIActionAdapter& us );
@@ -201,6 +206,17 @@ inline bool StandardManipulator::getAllowThrow() const
 {
     return _allowThrow;
 }
+
+/* :TODO: mio */
+inline void setUserInteractionFlags( const int f )
+{
+	_flags = f;
+}
+inline int getUserInteractionFlags() const
+{
+	return _flags;
+}
+/**/
 
 
 }
